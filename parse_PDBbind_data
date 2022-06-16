@@ -1,0 +1,6 @@
+import padas as pd
+
+def create_dataset(PDBbind_dataset.csv):
+  data = pd.read_csv(PDBbind_dataset.csv)
+
+  
