@@ -6,8 +6,8 @@
 #run this script again.
 
 for f in * ; do
-> echo $f
-> sed -i '' 's/H\.t3p/H	/' $f
-> sed -i '' 's/O\.t3p/O\.3  /' $f
-> done
+  echo $f
+  sed -i '' 's/H\.t3p/H	/' $f
+  sed -i '' 's/O\.t3p/O\.3  /' $f 
+  done
 
