@@ -4,8 +4,8 @@ Script to run a python script in chimera 1.16 from the Mac terminal.
 
 /Applications/Chimera.app/Contents/MacOS/chimera --nogui Path/To/process_chimera.py
 
-# NOTE: In rare cases (roughly 1 in 5,000) chimera may fail to add hydrogens to a pdb file. In this case, remove that pdb from the dataset and
-# rerun the script.
+# NOTE: In rare cases (roughly 1 in 5,000) chimera may fail to add hydrogens to a pdb file. Create a new dataset excluding these pdb files and
+# rerun the script. In our code, this updated csv file is called: 'affinity_data_cleaned_final.csv'.
 
 for f in *
 do
