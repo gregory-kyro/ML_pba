@@ -37,9 +37,9 @@ def create_dataset(PDBbind_dataset_path, general_set_PDBs_path, refined_set_PDBs
   # remove affinites that do not have structural data
   missing = []
   for i in range(len(pdbid_list)):
-  pdb = pdbid_list[i]
-  if os.path.isdir(general_set_PDBs_path %pdb)==False and os.path.isdir(refined_set_PDBs_path %pdb)==False:
-      missing.append(pdb)
+    pdb = pdbid_list[i]
+    if os.path.isdir(general_set_PDBs_path %pdb)==False and os.path.isdir(refined_set_PDBs_path %pdb)==False:
+        missing.append(pdb)
   affinity_data = affinity_data[~np.in1d(affinity_data['pdbid'], list(missing))]
 
   # distinguish PDB id's in general and refined sets
