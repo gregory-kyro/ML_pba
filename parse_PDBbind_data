@@ -59,7 +59,7 @@ def create_dataset(PDBbind_dataset_path, general_set_PDBs_path, refined_set_PDBs
   affinity_data[['pdbid', '-logKd/Ki', 'set']].to_csv('affinity_data_cleaned.csv', index=False)
   
   # read in and view the cleaned dataset
-  print(pd.read_csv('affinity_data_cleaned.csv'))
+  display(pd.read_csv('affinity_data_cleaned.csv'))
   
   if plot == True:
     # plot affinity distributions for general and refined sets
