@@ -1,6 +1,13 @@
-import padas as pd
+import pandas as pd
 
 def create_dataset(PDBbind_dataset.csv):
+  # load dataset
   data = pd.read_csv(PDBbind_dataset.csv)
-
-  
+  # write csv of affinity data
+  affinity_data = data[['pdbid','-logKd/Ki']]
+  affinity_data.to_csv('affinity_data.csv')
+  # check for NaNs in affinity data
+  if affinity_data['-logKd/Ki'].isnull().any() == False:
+    break
+  else:
+    print('There are NaNs present in affinity data!')
