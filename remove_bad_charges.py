@@ -24,8 +24,8 @@ def remove_bad_charges(affinity_data_path, mol2_path, general_PDBs_path, refined
   output:
   1) returns a csv file containing only the PDB id's that will be used, saved as:
      'affinity_data_cleaned_charge_cutoff_2.csv'
-  
   """
+    
   # read in affinity data csv file
   affinities = pd.read_csv(affinity_data_path)
   
