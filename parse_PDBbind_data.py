@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import seaborn as sns
+import os
 
 def create_dataset(PDBbind_dataset_path, general_set_PDBs_path, refined_set_PDBs_path, plot = False):
   """
