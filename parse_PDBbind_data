@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 
-def create_dataset(PDBbind_dataset-path, general_set_PDBs-path, refined_set_PDBs-path, plot = False):
+def create_dataset(PDBbind_dataset_path, general_set_PDBs_path, refined_set_PDBs_path, plot = False):
   """
   Produces a csv file containing PDB id, binding affinity, and set (general/refined)
   
@@ -19,7 +19,7 @@ def create_dataset(PDBbind_dataset-path, general_set_PDBs-path, refined_set_PDBs
   """
   
   # load dataset
-  data = pd.read_csv(PDBbind_dataset)
+  data = pd.read_csv(PDBbind_dataset_path)
   
   # write csv of affinity data
   affinity_data = data[['pdbid','-logKd/Ki']]
@@ -38,7 +38,7 @@ def create_dataset(PDBbind_dataset-path, general_set_PDBs-path, refined_set_PDBs
   missing = []
   for i in range(len(pdbid_list)):
   pdb = pdbid_list[i]
-  if os.path.isdir(general_set_PDBs-path %pdb)==False and os.path.isdir(refined_set_PDBs-path %pdb)==False:
+  if os.path.isdir(general_set_PDBs_path %pdb)==False and os.path.isdir(refined_set_PDBs_path %pdb)==False:
       missing.append(pdb)
   affinity_data = affinity_data[~np.in1d(affinity_data['pdbid'], list(missing))]
 
@@ -47,9 +47,9 @@ def create_dataset(PDBbind_dataset-path, general_set_PDBs-path, refined_set_PDBs
   refined_dict = {}
   for i in range(len(pdbid_list)):
     pdb = pdbid_list[i]
-    if os.path.isdir(general_set_PDBs-path %pdb)==True:
+    if os.path.isdir(general_set_PDBs_path %pdb)==True:
         general_dict[pdb] = 'general'
-    if os.path.isdir(refined_set_PDBs-path %pdb)==True:
+    if os.path.isdir(refined_set_PDBs_path %pdb)==True:
         refined_dict[pdb] = 'refined'
    
   # add 'set' column to affinity_data and fill with 'general'/'refined'
