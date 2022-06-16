@@ -7,7 +7,7 @@ def create_dataset(PDBbind_dataset_path, general_set_PDBs_path, refined_set_PDBs
   Produces a csv file containing PDB id, binding affinity, and set (general/refined)
   
   Inputs:
-  1) path to PDBbind dataset; an example dataset is included in ML_pba/example_data
+  1) path to PDBbind dataset; an example dataset is included in ML_pba/example_data.csv
   2) path to PDBbind general set PDBs
   3) path to PDBbind refined set PDBs
   4) plot = True will generate a plot of density as a function of binding affinity for general
