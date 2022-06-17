@@ -1,5 +1,4 @@
 def convert_to_hdf(affinity_data_path, output_total_hdf, mol2_path, general_PDBs_path, refined_PDBs_path, output_val_hdf, output_train_hdf, output_test_hdf):
-   
    """
   This function converts the mol2 files into three cleaned hdf files containing datasets for training, testing, and validation complexes, respectively.
    
