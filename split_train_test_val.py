@@ -1,6 +1,20 @@
 
 def split_hdf_file(cleaned_affinity_csv, input_hdf, output_val_hdf, output_train_hdf, output_test_hdf):
 
+    """
+  input:
+  1) path/to/cleaned/affinity/data.csv
+  2) path/to/input/hdf/file.hdf
+  3) path/to/output/validation/hdf/file.hdf
+  4) path/to/output/training/hdf/file.hdf
+  5) path/to/output/testing/hdf/file.hdf
+  
+  output:
+  1) returns a csv file containing only the PDB id's that will be used, saved as:
+     'affinity_data_cleaned_charge_cutoff_2.csv'
+  """
+  
+  
   #Read cleaned affinity data into DataFrame
   affinity_data_cleaned = pd.read_csv('affinity_data_cleaned_charge_cutoff_2.csv')
   
@@ -38,8 +52,8 @@ def split_hdf_file(cleaned_affinity_csv, input_hdf, output_val_hdf, output_train
             
   #Populate train hdf file by transferring all other datasets from the input file
   holdouts = np.hstack((val_pdbids,test_pdbids))
-  with h5py.File('cleaned_training_set.hdf', 'w') as g:
-    with h5py.File('cleaned_for_charges_2016_complexes.hdf', 'r') as f:
+  with h5py.File(output_train_hdf, 'w') as g:
+    with h5py.File(input_hdf, 'r') as f:
       for pdbid in affinity_data_cleaned['pdbid'].to_numpy():
         if pdbid not in holdouts:
           ds = g.create_dataset(pdbid, data=f[pdbid], compression = 'lzf')
