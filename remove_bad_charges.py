@@ -46,28 +46,24 @@ def remove_bad_charges(affinity_data_path, mol2_path, general_PDBs_path, refined
       ligand_files.append(refined_PDBs_path + pdbids_cleaned[i] + '/' + pdbids_cleaned[i] + '_ligand.mol2')
 
   # iterate through pocket files and identify the bad_complexes
-  count = 0
   for pfile in pocket_files:
-              count +=1
-              try:
-                  pocket = next(pybel.readfile('mol2', pfile))
-              except:
-                  raise IOError('Cannot read %s file' % pfile)
-              if(get_charge(pocket)==('bad_complex')):
-                  bad_complexes.append((os.path.splitext(os.path.split(pfile)[1])[0]).split('_')[0])  
+      try:
+          pocket = next(pybel.readfile('mol2', pfile))
+      except:
+          raise IOError('Cannot read %s file' % pfile)
+      if(get_charge(pocket)==('bad_complex')):
+          bad_complexes.append((os.path.splitext(os.path.split(pfile)[1])[0]).split('_')[0])  
                   
   # iterate through ligand files and identify the bad_complexes
-  count = 0
   for lfile in ligand_files:
-              count +=1
-              try:
-                  ligand = next(pybel.readfile('mol2', lfile))
-              except:
-                  raise IOError('Cannot read %s file' % lfile)
-              if(get_charge(ligand)=='bad_complex'):
-                  pdbid = (os.path.splitext(os.path.split(lfile)[1])[0]).split('_')[0]
-                  if pdbid not in bad_complexes:
-                      bad_complexes.append(pdbid)
+      try:
+          ligand = next(pybel.readfile('mol2', lfile))
+      except:
+          raise IOError('Cannot read %s file' % lfile)
+      if(get_charge(ligand)=='bad_complex'):
+          pdbid = (os.path.splitext(os.path.split(lfile)[1])[0]).split('_')[0]
+          if pdbid not in bad_complexes:
+              bad_complexes.append(pdbid)
                       
   # remove problematic pdb files from data
   with open(affinity_data_path, 'rt') as inp, open('affinity_data_cleaned_charge_cutoff_2.csv', 'w') as out:
