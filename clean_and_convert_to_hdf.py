@@ -1,20 +1,24 @@
-##NOTE: Just replaced cleaned_csv_path with affinity_data_path-- make sure to avoid compatibility issues later!
-##Call this function to convert cleaned mol2 files into one hdf file
-def convert_to_hdf (affinity_data_path, output, mol2_path, general_PDBs_path, refined_PDBs_path):
+##Call this function to convert mol2 files into three cleaned hdf files containing datasets for training, testing, and validation complexes
+def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDBs_path, refined_PDBs_path, output_val_hdf, output_train_hdf, output_test_hdf):
    
    """
   input:
   1) path/to/affinity/data.csv
-  2) path/to/output/hdf/file.hdf
+  2) path/to/total/output/hdf/file.hdf
   3) path/to/mol2/files
   4) path/to/PDBs/in/general_set
   5) path/to/PDBs/in/refined_set
+  6) path/to/output/validation/hdf/file.hdf
+  7) path/to/output/training/hdf/file.hdf
+  8) path/to/output/testing/hdf/file.hdf
   
   output:
-  1) creates an hdf file containing featurized data for only the PDB id's that will be used, saved at:
+  1) creates a total hdf file containing featurized data for all of the PDB id's that will be used, saved at:
      'path/to/output/hdf/file.hdf'
-  2) creates a csv file containing only the PDB id's that will be used, saved as:
+  2) creates a csv file containing all of the PDB id's that will be used, saved as:
      'affinity_data_cleaned_charge_cutoff_2.csv'
+  3) creates three hdf files containing the featurized data for the PDB id's that will be used in validation, training, and testing sets, saved at:
+     'path/to/output/validation/hdf/file.hdf', 'path/to/output/training/hdf/file.hdf', and 'path/to/output/testing/hdf/file.hdf', respectively
   """
    
    ##This is the source code for the tfbio Featurizer() class, originally developed here: https://gitlab.com/cheminfIBB/tfbio/-/blob/master/tfbio/data.py
@@ -630,7 +634,7 @@ def convert_to_hdf (affinity_data_path, output, mol2_path, general_PDBs_path, re
 
 
    #create a new hdf file to store all of the data
-   with h5py.File(output, 'w') as f:
+   with h5py.File(output_total_hdf, 'w') as f:
 
       pocket_generator = __get_pocket()
 
@@ -689,3 +693,48 @@ def convert_to_hdf (affinity_data_path, output, mol2_path, general_PDBs_path, re
       for row in csv.reader(inp):
           if not row[0] in bad_complexes:
               writer.writerow(row)
+            
+  #Read cleaned affinity data into a DataFrame
+  affinity_data_cleaned = pd.read_csv('affinity_data_cleaned_charge_cutoff_2.csv')
+  
+  #Create a column for the percentile of affinities
+  affinity_data_cleaned['Percentile']= pd.qcut(affinity_data_cleaned['-logKd/Ki'],
+                             q = 100, labels = False)
+                             
+  #Create empty arrays to store non-training pdbids
+  test_pdbids = []
+  val_pdbids = []
+  
+  #Select test data (10% of total) and validation data (2% of total) that have an even distribution of affinity percentiles
+  for i in range(0, 100):
+    temp = affinity_data_cleaned[affinity_data_cleaned['Percentile'] == i]
+    num_vals = len(temp)
+    test_rows = temp.sample(int(num_vals/10))
+    test_pdbids = np.hstack((test_pdbids, (test_rows['pdbid']).to_numpy()))
+    for pdbid in (test_rows['pdbid']).to_numpy():
+      temp = temp[temp.pdbid != pdbid]
+    val_rows = temp.sample(int(num_vals/50))
+    val_pdbids = np.hstack((val_pdbids, (val_rows['pdbid']).to_numpy()))
+
+  #Populate the test and validation hdf files by transferring those datasets from the total file
+  with h5py.File(output_test_hdf, 'w') as g, \
+   h5py.File(output_val_hdf, 'w') as h:
+  with h5py.File(output_total_hdf, 'r') as f:
+      for pdbid in val_pdbids:
+          ds = h.create_dataset(pdbid, data=f[pdbid], compression = 'lzf')
+          ds.attrs['affinity'] = f[pdbid].attrs['affinity']
+          ds.attrs["van_der_waals"] = f[pdbid].attrs["van_der_waals"]
+      for pdbid in test_pdbids:
+          ds = g.create_dataset(pdbid, data=f[pdbid], compression = 'lzf')
+          ds.attrs['affinity'] = f[pdbid].attrs['affinity']
+          ds.attrs["van_der_waals"] = f[pdbid].attrs["van_der_waals"]
+            
+  #Populate the train hdf file by transferring all other datasets from the total file
+  holdouts = np.hstack((val_pdbids,test_pdbids))
+  with h5py.File(output_train_hdf, 'w') as g:
+    with h5py.File(output_total_hdf, 'r') as f:
+      for pdbid in affinity_data_cleaned['pdbid'].to_numpy():
+        if pdbid not in holdouts:
+          ds = g.create_dataset(pdbid, data=f[pdbid], compression = 'lzf')
+          ds.attrs['affinity'] = f[pdbid].attrs['affinity']
+          ds.attrs["van_der_waals"] = f[pdbid].attrs["van_der_waals"]
