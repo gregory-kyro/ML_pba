@@ -1,0 +1,8 @@
+from featurizer import Featurizer
+
+
+
+
+
+
+pd.read_csv('affinity_data_cleaned_charge_cutoff_2.csv')
