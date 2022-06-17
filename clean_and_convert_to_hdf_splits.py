@@ -1,7 +1,8 @@
-##Call this function to convert mol2 files into three cleaned hdf files containing datasets for training, testing, and validation complexes
-def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDBs_path, refined_PDBs_path, output_val_hdf, output_train_hdf, output_test_hdf):
+def convert_to_hdf(affinity_data_path, output_total_hdf, mol2_path, general_PDBs_path, refined_PDBs_path, output_val_hdf, output_train_hdf, output_test_hdf):
    
    """
+  This function converts the mol2 files into three cleaned hdf files containing datasets for training, testing, and validation complexes, respectively.
+   
   input:
   1) path/to/affinity/data.csv
   2) path/to/total/output/hdf/file.hdf
@@ -13,26 +14,22 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
   8) path/to/output/testing/hdf/file.hdf
   
   output:
-  1) creates a total hdf file containing featurized data for all of the PDB id's that will be used, saved at:
+  1)  a complete hdf file containing featurized data for all of the PDB id's that will be used, saved as:
      'path/to/output/hdf/file.hdf'
-  2) creates a csv file containing all of the PDB id's that will be used, saved as:
+  2)  a csv file containing all of the PDB id's that will be used, saved as:
      'affinity_data_cleaned_charge_cutoff_2.csv'
-  3) creates three hdf files containing the featurized data for the PDB id's that will be used in validation, training, and testing sets, saved at:
+  3)  three hdf files containing the featurized data for the PDB id's that will be used in validation, training, and testing sets, saved as:
      'path/to/output/validation/hdf/file.hdf', 'path/to/output/training/hdf/file.hdf', and 'path/to/output/testing/hdf/file.hdf', respectively
   """
    
-   ##This is the source code for the tfbio Featurizer() class, originally developed here: https://gitlab.com/cheminfIBB/tfbio/-/blob/master/tfbio/data.py
-
+   # This is the source code for the tfbio Featurizer() class, originally developed here: https://gitlab.com/cheminfIBB/tfbio/-/blob/master/tfbio/data.py
    import pickle
-
    import numpy as np
-
    import openbabel.pybel
    from openbabel.pybel import Smarts
    from math import ceil, sin, cos, sqrt, pi
    from itertools import combinations
-
-
+   
    class Featurizer():
        """Calcaulates atomic features for molecules. Features can encode atom type,
        native pybel properties or any property defined with SMARTS patterns
@@ -103,9 +100,8 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
                this argument is ignored.
            """
 
-           # Remember namse of all features in the correct order
+           # Remember names of all features in the correct order
            self.FEATURE_NAMES = []
-
            if atom_codes is not None:
                if not isinstance(atom_codes, dict):
                    raise TypeError('Atom codes should be dict, got %s instead'
@@ -114,7 +110,6 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
                for i in range(len(codes)):
                    if i not in codes:
                        raise ValueError('Incorrect atom code %s' % i)
-
                self.NUM_ATOM_CLASSES = len(codes)
                self.ATOM_CODES = atom_codes
                if atom_labels is not None:
@@ -127,12 +122,11 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
                self.FEATURE_NAMES += atom_labels
            else:
                self.ATOM_CODES = {}
-
                metals = ([3, 4, 11, 12, 13] + list(range(19, 32))
                          + list(range(37, 51)) + list(range(55, 84))
                          + list(range(87, 104)))
 
-               # List of tuples (atomic_num, class_name) with atom types to encode.
+               # List of tuples (atomic_num, class_name) with atom types to encode
                atom_classes = [
                    (5, 'B'),
                    (6, 'C'),
@@ -144,7 +138,6 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
                    ([9, 17, 35, 53], 'halogen'),
                    (metals, 'metal')
                ]
-
                for code, (atom, name) in enumerate(atom_classes):
                    if type(atom) is list:
                        for a in atom:
@@ -152,9 +145,7 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
                    else:
                        self.ATOM_CODES[atom] = code
                    self.FEATURE_NAMES.append(name)
-
                self.NUM_ATOM_CLASSES = len(atom_classes)
-
            if named_properties is not None:
                if not isinstance(named_properties, (list, tuple, np.ndarray)):
                    raise TypeError('named_properties must be a list')
@@ -172,7 +163,6 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
                self.NAMED_PROPS = ['hyb', 'heavydegree', 'heterodegree',
                                    'partialcharge']
            self.FEATURE_NAMES += self.NAMED_PROPS
-
            if not isinstance(save_molecule_codes, bool):
                raise TypeError('save_molecule_codes should be bool, got %s '
                                'instead' % type(save_molecule_codes))
@@ -180,7 +170,6 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
            if save_molecule_codes:
                # Remember if an atom belongs to the ligand or to the protein
                self.FEATURE_NAMES.append('molcode')
-
            self.CALLABLES = []
            if custom_properties is not None:
                for i, func in enumerate(custom_properties):
@@ -192,7 +181,6 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
                        name = 'func%s' % i
                    self.CALLABLES.append(func)
                    self.FEATURE_NAMES.append(name)
-
            if smarts_properties is None:
                # SMARTS definition for other properties
                self.SMARTS = [
@@ -227,7 +215,8 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
                self.__PATTERNS.append(openbabel.pybel.Smarts(smarts))
 
        def encode_num(self, atomic_num):
-           """Encode atom type with a binary vector. If atom type is not included in
+           """
+           Encode atom type with a binary vector. If atom type is not included in
            the `atom_classes`, its encoding is an all-zeros vector.
            Parameters
            ----------
@@ -251,7 +240,8 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
            return encoding
 
        def find_smarts(self, molecule):
-           """Find atoms that match SMARTS patterns.
+           """
+           Find atoms that match SMARTS patterns.
            Parameters
            ----------
            molecule: openbabel.pybel.Molecule
@@ -276,7 +266,8 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
            return features
 
        def get_features(self, molecule, molcode=None):
-           """Get coordinates and features for all heavy atoms in the molecule.
+           """
+           Get coordinates and features for all heavy atoms in the molecule.
            Parameters
            ----------
            molecule: pybel.Molecule
@@ -354,7 +345,8 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
 
        @staticmethod
        def from_pickle(fname):
-           """Load pickled featurizer from a given file
+           """
+           Load pickled featurizer from a given file
            Parameters
            ----------
            fname: str, optional
@@ -368,7 +360,6 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
                featurizer = pickle.load(f)
            featurizer.compile_smarts()
            return featurizer
-
 
    def rotation_matrix(axis, theta):
        """Counterclockwise rotation about a given axis by theta radians"""
@@ -426,9 +417,9 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
            axis[a1] = -1
            ROTATIONS.append(rotation_matrix(axis, theta))
 
-
    def rotate(coords, rotation):
-       """Rotate coordinates by a given rotation
+       """
+       Rotate coordinates by a given rotation
        Parameters
        ----------
        coords: array-like, shape (N, 3)
@@ -465,11 +456,9 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
        else:
            raise ValueError('Invalid rotation %s!' % rotation)
 
-
-   # TODO: add make_grid variant for GPU
-
    def make_grid(coords, features, grid_resolution=1.0, max_dist=10.0):
-       """Convert atom coordinates and features represented as 2D arrays into a
+       """
+       Convert atom coordinates and features represented as 2D arrays into a
        fixed-sized 3D box.
        Parameters
        ----------
@@ -521,7 +510,7 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
 
        box_size = ceil(2 * max_dist / grid_resolution + 1)
 
-       # move all atoms to the neares grid point
+       # move all atoms to the nearest grid point
        grid_coords = (coords + max_dist) / grid_resolution
        grid_coords = grid_coords.round().astype(int)
 
@@ -531,15 +520,10 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
                        dtype=np.float32)
        for (x, y, z), f in zip(grid_coords[in_box], features[in_box]):
            grid[0, x, y, z] += f
-
        return grid
 
-
-
-   
-   #Necessary import statement
+   # necessary import statement
    import xml.etree.ElementTree as ET
-
 
    # define function to select pocket mol2 files with atoms that have charges greater than +- 2 (unfeasible)
    def get_charge(molecule):
@@ -550,7 +534,7 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
             else: 
               return 'no_error'  
 
-   #Define function to extract features from the binding pocket mol2 file and detect if it contains atoms with charges greater than +- 2 (unfeasible) 
+   # define function to extract features from the binding pocket mol2 file and detect if it contains atoms with charges greater than +- 2 (unfeasible) 
    def __get_pocket():
      for pfile in pocket_files:
          try:
@@ -563,7 +547,7 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
          pocket_vdw = parse_mol_vdw(mol=pocket, element_dict=element_dict)
          yield (pocket_coords, pocket_features, pocket_vdw)
 
-   #Define function to extract information from elements.xml file
+   # define function to extract information from elements.xml file
    def parse_element_description(desc_file):
      element_info_dict = {}
      element_info_xml = ET.parse(desc_file)
@@ -575,8 +559,7 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
 
      return element_info_dict
 
-
-   #Define function to create a list of van der Waals radii for a molecule
+   # define function to create a list of van der Waals radii for a molecule
    def parse_mol_vdw(mol, element_dict):
      vdw_list = []
      for atom in mol.atoms:
@@ -590,9 +573,8 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
      return np.asarray(vdw_list)
 
 
-   #read in data from elements.xml file
+   # read in data from elements.xml file
    element_dict = parse_element_description("ML_pba/elements.xml")
-
 
    # read in cleaned affinity data csv file
    affinities = pd.read_csv(affinity_data_path)
@@ -607,7 +589,6 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
    # these are the PDBs for which Chimera failed to calculate charges and that failed hdf5 conversion (next step)
    bad_complexes = ['3ary', '4bps', '4mdq', '2iw4'] 
 
-
    # fill lists with paths to pocket and ligand mol2 files
    for i in range(0, len(pdbids_cleaned)):
     pocket_files.append(mol2_path + pdbids_cleaned[i] + '_pocket.mol2')
@@ -621,19 +602,15 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
    if num_pockets != num_ligands:
       raise IOError('%s pockets specified for %s ligands. You must providea single pocket or a separate pocket for each ligand' % (num_pockets, num_ligands))
 
-
-
    if '-logKd/Ki' not in affinities.columns:
       raise ValueError('There is no `-logKd/Ki` column in the table')
    elif 'pdbid' not in affinities.columns:
       raise ValueError('There is no `pdbid` column in the table')
    affinities = affinities.set_index('pdbid')['-logKd/Ki']
-
-
+   
    featurizer = Featurizer()
 
-
-   #create a new hdf file to store all of the data
+   # create a new hdf file to store all of the data
    with h5py.File(output_total_hdf, 'w') as f:
 
       pocket_generator = __get_pocket()
@@ -643,69 +620,69 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
           name = os.path.splitext(os.path.split(lfile)[1])[0]
           pdbid = name.split('_')[0]
 
-          #read ligand file using pybel
+          # read ligand file using pybel
           try:
               ligand = next(pybel.readfile('mol2', lfile))
           except:
               raise IOError('Cannot read %s file' % lfile)
 
-          #extract features from pocket and check for unrealistic charges
+          # extract features from pocket and check for unrealistic charges
           pocket_coords, pocket_features, pocket_vdw = next(pocket_generator)
             
-          #extract features from ligand and check for unrealistic charges
+          # extract features from ligand and check for unrealistic charges
           ligand_coords, ligand_features = featurizer.get_features(ligand, molcode=1)
           ligand_vdw = parse_mol_vdw(mol=ligand, element_dict=element_dict)
           if(get_charge(ligand)=='bad_complex'):
              if pdbid not in bad_complexes:
                  bad_complexes.append(pdbid)
             
-          #if the current ligand file is part of a bad complex, do not copy to the cleaned hdf file
+          # if the current ligand file is part of a bad complex, do not copy to the cleaned hdf file
           if pdbid in bad_complexes:
                continue
           
-         
-          #Center the ligand and pocket coordinates
+          # center the ligand and pocket coordinates
           centroid = ligand_coords.mean(axis=0)
           ligand_coords -= centroid
           pocket_coords -= centroid
 
-          #assemble the features into one large numpy array: rows are heavy atoms, columns are coordinates and features
+          # assemble the features into one large numpy array: rows are heavy atoms, columns are coordinates and features
           data = np.concatenate(
               (np.concatenate((ligand_coords, pocket_coords)),
                np.concatenate((ligand_features, pocket_features))),
               axis=1,
           )
-          #concatenate van der Waals radii into one numpy array
+          # concatenate van der Waals radii into one numpy array
           vdw_radii = np.concatenate((ligand_vdw, pocket_vdw))
 
-          #create a new dataset for this complex in the hdf file
+          # create a new dataset for this complex in the hdf file
           dataset = f.create_dataset(pdbid, data=data, shape=data.shape,
                                      dtype='float32', compression='lzf')
 
-          #add the affinity and van der Waals radii as attributes for this dataset 
+          # add the affinity and van der Waals radii as attributes for this dataset 
           dataset.attrs['affinity'] = affinities.loc[pdbid]
           assert len(vdw_radii) == data.shape[0]
           dataset.attrs["van_der_waals"] = vdw_radii
 
-   #save all good pdbids into a csv file for future use
+   # save all good pdbids into a csv file for future use
    with open(affinity_data_path, 'rt') as inp, open('affinity_data_cleaned_charge_cutoff_2.csv', 'w') as out:
       writer = csv.writer(out)
       for row in csv.reader(inp):
           if not row[0] in bad_complexes:
               writer.writerow(row)
             
-  #Read cleaned affinity data into a DataFrame
+  # read cleaned affinity data into a pandas DataFrame
   affinity_data_cleaned = pd.read_csv('affinity_data_cleaned_charge_cutoff_2.csv')
   
-  #Create a column for the percentile of affinities
+  # create a column for the percentile of affinities
   affinity_data_cleaned['Percentile']= pd.qcut(affinity_data_cleaned['-logKd/Ki'],
                              q = 100, labels = False)
                              
-  #Create empty arrays to store non-training pdbids
+  # create empty arrays to store non-training pdbids
   test_pdbids = []
   val_pdbids = []
   
-  #Select test data (10% of total) and validation data (2% of total) that have an even distribution of affinity percentiles
+  # select test data (10% of total) and validation data (2% of total) that have even distributions of
+  # affinity percentiles compared to training data
   for i in range(0, 100):
     temp = affinity_data_cleaned[affinity_data_cleaned['Percentile'] == i]
     num_vals = len(temp)
@@ -716,7 +693,7 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
     val_rows = temp.sample(int(num_vals/50))
     val_pdbids = np.hstack((val_pdbids, (val_rows['pdbid']).to_numpy()))
 
-  #Populate the test and validation hdf files by transferring those datasets from the total file
+  # populate the test and validation hdf files by transferring those datasets from the total file
   with h5py.File(output_test_hdf, 'w') as g, \
    h5py.File(output_val_hdf, 'w') as h:
   with h5py.File(output_total_hdf, 'r') as f:
@@ -729,7 +706,7 @@ def convert_to_hdf (affinity_data_path, output_total_hdf, mol2_path, general_PDB
           ds.attrs['affinity'] = f[pdbid].attrs['affinity']
           ds.attrs["van_der_waals"] = f[pdbid].attrs["van_der_waals"]
             
-  #Populate the train hdf file by transferring all other datasets from the total file
+  # populate the train hdf file by transferring all other datasets from the total file
   holdouts = np.hstack((val_pdbids,test_pdbids))
   with h5py.File(output_train_hdf, 'w') as g:
     with h5py.File(output_total_hdf, 'r') as f:
