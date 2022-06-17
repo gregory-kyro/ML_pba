@@ -1,7 +1,6 @@
 
 
 def create_voxelized_hdf (input_train_hdf_path, input_val_hdf_path, input_test_hdf_path, output_train_hdf_path, output_val_hdf_path, output_test_hdf_path, output_csv_path):
-  
     """
     input:
     1) path/to/input/training/hdf/file.hdf
@@ -16,7 +15,7 @@ def create_voxelized_hdf (input_train_hdf_path, input_val_hdf_path, input_test_h
     1) Creates 3 hdf files containing voxelized training, testing, and validation data. Also creates a csv file containing more general information about each complex.
     """
 
-    #Necessary import statements
+    # necessary import statements
     import os
     import sys
     import shutil
@@ -26,17 +25,16 @@ def create_voxelized_hdf (input_train_hdf_path, input_val_hdf_path, input_test_h
     import scipy as sp
     import scipy.ndimage
 
-    #Function to rotate input data
+    # function to rotate input data
     def rotate_3D(input_data):
         rotation_angle = np.random.uniform() * 2 * np.pi
         cosval = np.cos(rotation_angle)
         sinval = np.sin(rotation_angle)
         rotation_matrix = np.array([[cosval, 0, sinval], [0, 1, 0], [-sinval, 0, cosval]])
-        #rotated_data = np.zeros(input_data.shape, dtype=np.float32)
         rotated_data = np.dot(input_data, rotation_matrix)
         return rotated_data
 
-    #Function to get boundaries of a coordinate array
+    # function to get boundaries of a coordinate array
     def get_3D_bound(xyz_array):
         xmin = min(xyz_array[:, 0])
         ymin = min(xyz_array[:, 1])
@@ -46,7 +44,7 @@ def create_voxelized_hdf (input_train_hdf_path, input_val_hdf_path, input_test_h
         zmax = max(xyz_array[:, 2])
         return xmin, ymin, zmin, xmax, ymax, zmax
 
-    #Function to voxelize
+    # function to voxelize
     def get_3D_all2(xyz, feat, vol_dim, relative_size=True, size_angstrom=48, atom_radii=None, atom_radius=1, sigma=0):
 
         # get 3d bounding box
@@ -70,7 +68,6 @@ def create_voxelized_hdf (input_train_hdf_path, input_val_hdf_path, input_test_h
             ymax = ymid + (size_angstrom / 2)
             zmax = zmid + (size_angstrom / 2)
             vox_size2 = float(size_angstrom) / float(vol_dim[0])
-            #print(vox_size, vox_size2)
 
         # assign each atom to voxels
         for ind in range(xyz.shape[0]):
@@ -126,13 +123,12 @@ def create_voxelized_hdf (input_train_hdf_path, input_val_hdf_path, input_test_h
   output_csv = csv.writer(output_csv_fp, delimiter=',')
   output_csv.writerow(g_csv_header)
   
-  #organize input and output hdf files
+  # organize input and output hdf files
   input_hdfs = [input_train_hdf, input_val_hdf, input_test_hdf]
   output_hdfs = [output_train_hdf, output_val_hdf, output_test_hdf]
   traintest_splits = [0, 1, 2]
 
-
-  ##Set parameters for voxelization
+  # set parameters for voxelization
   g_3D_relative_size = False
   g_3D_size_angstrom = 48
   g_3D_size_dim = 48
@@ -141,11 +137,8 @@ def create_voxelized_hdf (input_train_hdf_path, input_val_hdf_path, input_test_h
   g_3D_sigma = 1
   g_3D_dim = [g_3D_size_dim, g_3D_size_dim, g_3D_size_dim, 19]
 
-
   if g_3D_relative_size:
       g_3D_size_angstrom = 0
-
-
 
   for input_hdf, output_hdf, split in zip(input_hdfs, output_hdfs, traintest_splits): 
       for pdbid in input_hdf.keys():
@@ -160,7 +153,6 @@ def create_voxelized_hdf (input_train_hdf_path, input_val_hdf_path, input_test_h
 
         output_3d_data = get_3D_all2(input_xyz, input_feat, g_3D_dim, g_3D_relative_size, g_3D_size_angstrom, input_radii, g_3D_atom_radius, g_3D_sigma)
         print(input_data.shape, 'is converted into ', output_3d_data.shape)
-
 
         output_hdf.create_dataset(pdbid, data=output_3d_data, shape=output_3d_data.shape, dtype='float32', compression='lzf')
         output_hdf[pdbid].attrs['affinity'] = input_affinity
