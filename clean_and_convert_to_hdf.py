@@ -1,18 +1,20 @@
-
+##NOTE: Just replaced cleaned_csv_path with affinity_data_path-- make sure to avoid compatibility issues later!
 ##Call this function to convert cleaned mol2 files into one hdf file
-def convert_to_hdf (cleaned_csv_path, output, mol2_path, general_PDBs_path, refined_PDBs_path):
+def convert_to_hdf (affinity_data_path, output, mol2_path, general_PDBs_path, refined_PDBs_path):
    
    """
   input:
-  1) path/to/cleaned/affinity/data.csv
+  1) path/to/affinity/data.csv
   2) path/to/output/hdf/file.hdf
   3) path/to/mol2/files
   4) path/to/PDBs/in/general_set
   5) path/to/PDBs/in/refined_set
   
   output:
-  1) returns an hdf file containing only the PDB id's that will be used, saved at:
+  1) creates an hdf file containing featurized data for only the PDB id's that will be used, saved at:
      'path/to/output/hdf/file.hdf'
+  2) creates a csv file containing only the PDB id's that will be used, saved as:
+     'affinity_data_cleaned_charge_cutoff_2.csv'
   """
    
    ##This is the source code for the tfbio Featurizer() class, originally developed here: https://gitlab.com/cheminfIBB/tfbio/-/blob/master/tfbio/data.py
@@ -531,111 +533,133 @@ def convert_to_hdf (cleaned_csv_path, output, mol2_path, general_PDBs_path, refi
 
 
    
-    #Necessary import statement
-    import xml.etree.ElementTree as ET
-
-    #Define function to extract features from the binding pocket mol2 file
-    def __get_pocket():
-        for pfile in pocket_files:
-            try:
-                pocket = next(pybel.readfile('mol2', pfile))
-            except:
-                raise IOError('Cannot read %s file' % pfile)
-
-            pocket_coords, pocket_features = featurizer.get_features(pocket, molcode=-1)
-            pocket_vdw = parse_mol_vdw(mol=pocket, element_dict=element_dict)
-            yield (pocket_coords, pocket_features, pocket_vdw)
-
-    #Define function to extract information from elements.xml file
-    def parse_element_description(desc_file):
-        element_info_dict = {}
-        element_info_xml = ET.parse(desc_file)
-        for element in element_info_xml.getiterator():
-            if "comment" in element.attrib.keys():
-                continue
-            else:
-                element_info_dict[int(element.attrib["number"])] = element.attrib
-
-        return element_info_dict
+   #Necessary import statement
+   import xml.etree.ElementTree as ET
 
 
-    #Define function to create a list of van der Waals radii for a molecule
-    def parse_mol_vdw(mol, element_dict):
-        vdw_list = []
-        for atom in mol.atoms:
-            # NOTE: to be consistent between featurization methods, throw out the hydrogens
-            if int(atom.atomicnum) == 1:
-                continue
-            if int(atom.atomicnum) == 0:
-                continue
-            else:
-                vdw_list.append(float(element_dict[atom.atomicnum]["vdWRadius"]))
-        return np.asarray(vdw_list)
-    
+   # define function to select pocket mol2 files with atoms that have charges greater than +- 2 (unfeasible)
+   def get_charge(molecule):
+    for i, atom in enumerate(molecule):
+        if atom.atomicnum > 1:
+            if (abs(atom.__getattribute__('partialcharge'))>=2): # this charge cutoff can be varied
+              return 'bad_complex'
+            else: 
+              return 'no_error'  
 
-  #read in data from elements.xml file
-  element_dict = parse_element_description("ML_pba/elements.xml")
+   #Define function to extract features from the binding pocket mol2 file and detect if it contains atoms with charges greater than +- 2 (unfeasible) 
+   def __get_pocket():
+     for pfile in pocket_files:
+         try:
+             pocket = next(pybel.readfile('mol2', pfile))
+         except:
+             raise IOError('Cannot read %s file' % pfile)
+         if(get_charge(pocket)==('bad_complex')):
+          bad_complexes.append((os.path.splitext(os.path.split(pfile)[1])[0]).split('_')[0]) 
+         pocket_coords, pocket_features = featurizer.get_features(pocket, molcode=-1)
+         pocket_vdw = parse_mol_vdw(mol=pocket, element_dict=element_dict)
+         yield (pocket_coords, pocket_features, pocket_vdw)
+
+   #Define function to extract information from elements.xml file
+   def parse_element_description(desc_file):
+     element_info_dict = {}
+     element_info_xml = ET.parse(desc_file)
+     for element in element_info_xml.getiterator():
+         if "comment" in element.attrib.keys():
+             continue
+         else:
+             element_info_dict[int(element.attrib["number"])] = element.attrib
+
+     return element_info_dict
 
 
-  # read in cleaned affinity data csv file
-  affinities = pd.read_csv(cleaned_csv_path)
+   #Define function to create a list of van der Waals radii for a molecule
+   def parse_mol_vdw(mol, element_dict):
+     vdw_list = []
+     for atom in mol.atoms:
+         # NOTE: to be consistent between featurization methods, throw out the hydrogens
+         if int(atom.atomicnum) == 1:
+             continue
+         if int(atom.atomicnum) == 0:
+             continue
+         else:
+             vdw_list.append(float(element_dict[atom.atomicnum]["vdWRadius"]))
+     return np.asarray(vdw_list)
 
-  # convert pdb id's to numpy array
-  pdbids_cleaned = affinities['pdbid'].to_numpy()
 
-  # define empty lists to contain pocket and ligand files
-  pocket_files = []
-  ligand_files = []
+   #read in data from elements.xml file
+   element_dict = parse_element_description("ML_pba/elements.xml")
 
 
-  # fill lists with paths to pocket and ligand mol2 files
-  for i in range(0, len(pdbids_cleaned)):
+   # read in cleaned affinity data csv file
+   affinities = pd.read_csv(affinity_data_path)
+
+   # convert pdb id's to numpy array
+   pdbids_cleaned = affinities['pdbid'].to_numpy()
+
+   # define empty lists to contain pocket and ligand files
+   pocket_files = []
+   ligand_files = []
+   
+   # these are the PDBs for which Chimera failed to calculate charges and that failed hdf5 conversion (next step)
+   bad_complexes = ['3ary', '4bps', '4mdq', '2iw4'] 
+
+
+   # fill lists with paths to pocket and ligand mol2 files
+   for i in range(0, len(pdbids_cleaned)):
     pocket_files.append(mol2_path + pdbids_cleaned[i] + '_pocket.mol2')
     if affinities['set'][i]=='general':
       ligand_files.append(general_PDBs_path + pdbids_cleaned[i] + '/' + pdbids_cleaned[i] + '_ligand.mol2')
     else:
       ligand_files.append(refined_PDBs_path + pdbids_cleaned[i] + '/' + pdbids_cleaned[i] + '_ligand.mol2')
 
-  num_pockets = len(pocket_files)
-  num_ligands = len(ligand_files)
-  if num_pockets != num_ligands:
+   num_pockets = len(pocket_files)
+   num_ligands = len(ligand_files)
+   if num_pockets != num_ligands:
       raise IOError('%s pockets specified for %s ligands. You must providea single pocket or a separate pocket for each ligand' % (num_pockets, num_ligands))
 
 
 
-  if '-logKd/Ki' not in affinities.columns:
+   if '-logKd/Ki' not in affinities.columns:
       raise ValueError('There is no `-logKd/Ki` column in the table')
-  elif 'pdbid' not in affinities.columns:
+   elif 'pdbid' not in affinities.columns:
       raise ValueError('There is no `pdbid` column in the table')
-  affinities = affinities.set_index('pdbid')['-logKd/Ki']
- 
-
-  featurizer = Featurizer()
+   affinities = affinities.set_index('pdbid')['-logKd/Ki']
 
 
-  #create a new hdf file to store all of the data
-  with h5py.File(output, 'w') as f:
-  
+   featurizer = Featurizer()
+
+
+   #create a new hdf file to store all of the data
+   with h5py.File(output, 'w') as f:
+
       pocket_generator = __get_pocket()
-      
+
       for lfile in ligand_files:
           # use pdbid as dataset name
           name = os.path.splitext(os.path.split(lfile)[1])[0]
           pdbid = name.split('_')[0]
-          
+
           #read ligand file using pybel
           try:
               ligand = next(pybel.readfile('mol2', lfile))
           except:
               raise IOError('Cannot read %s file' % lfile)
-          
-          #extract features from ligand
+
+          #extract features from pocket and check for unrealistic charges
+          pocket_coords, pocket_features, pocket_vdw = next(pocket_generator)
+            
+          #extract features from ligand and check for unrealistic charges
           ligand_coords, ligand_features = featurizer.get_features(ligand, molcode=1)
           ligand_vdw = parse_mol_vdw(mol=ligand, element_dict=element_dict)
+          if(get_charge(ligand)=='bad_complex'):
+             if pdbid not in bad_complexes:
+                 bad_complexes.append(pdbid)
+            
+          #if the current ligand file is part of a bad complex, do not copy to the cleaned hdf file
+          if pdbid in bad_complexes:
+               continue
           
-          #extract features from pocket
-          pocket_coords, pocket_features, pocket_vdw = next(pocket_generator)
-
+         
           #Center the ligand and pocket coordinates
           centroid = ligand_coords.mean(axis=0)
           ligand_coords -= centroid
@@ -649,14 +673,19 @@ def convert_to_hdf (cleaned_csv_path, output, mol2_path, general_PDBs_path, refi
           )
           #concatenate van der Waals radii into one numpy array
           vdw_radii = np.concatenate((ligand_vdw, pocket_vdw))
-          
+
           #create a new dataset for this complex in the hdf file
           dataset = f.create_dataset(pdbid, data=data, shape=data.shape,
                                      dtype='float32', compression='lzf')
-                                     
+
           #add the affinity and van der Waals radii as attributes for this dataset 
           dataset.attrs['affinity'] = affinities.loc[pdbid]
           assert len(vdw_radii) == data.shape[0]
           dataset.attrs["van_der_waals"] = vdw_radii
-          
-          
+
+   #save all good pdbids into a csv file for future use
+   with open(affinity_data_path, 'rt') as inp, open('affinity_data_cleaned_charge_cutoff_2.csv', 'w') as out:
+      writer = csv.writer(out)
+      for row in csv.reader(inp):
+          if not row[0] in bad_complexes:
+              writer.writerow(row)
