@@ -1,4 +1,4 @@
-def convert_to_hdf(affinity_data_path, output_total_hdf, mol2_path, general_PDBs_path, refined_PDBs_path, output_val_hdf, output_train_hdf, output_test_hdf):
+def convert_to_hdf(affinity_data_path, output_total_hdf, mol2_path, general_PDBs_path, refined_PDBs_path, output_val_hdf, output_train_hdf, output_test_hdf, bad_pdbids_input = []):
    """
   This function converts the mol2 files into three cleaned hdf files containing datasets for training, testing, and validation complexes, respectively.
    
@@ -11,6 +11,7 @@ def convert_to_hdf(affinity_data_path, output_total_hdf, mol2_path, general_PDBs
   6) path/to/output/validation/hdf/file.hdf
   7) path/to/output/training/hdf/file.hdf
   8) path/to/output/testing/hdf/file.hdf
+  9) bad_pdbids_input, an array containing any pdbids that crashed chimera or crashed this function (roughly 1 in 3,000 files). Set to [] by default
   
   output:
   1)  a complete hdf file containing featurized data for all of the PDB id's that will be used, saved as:
@@ -586,7 +587,7 @@ def convert_to_hdf(affinity_data_path, output_total_hdf, mol2_path, general_PDBs
    ligand_files = []
    
    # these are the PDBs for which Chimera failed to calculate charges and that failed hdf5 conversion (next step)
-   bad_complexes = ['3ary', '4bps', '4mdq', '2iw4'] 
+   bad_complexes = bad_pdbids_input #For the 2016 pdbbind data, bad_pdbids_input = ['3ary', '4bps', '4mdq', '2iw4'] 
 
    # fill lists with paths to pocket and ligand mol2 files
    for i in range(0, len(pdbids_cleaned)):
