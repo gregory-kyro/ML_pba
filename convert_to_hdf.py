@@ -1,45 +1,4 @@
-from featurizer import Featurizer  ##See featurizer module for more details
-import xml.etree.ElementTree as ET
 
-##Define function to extract features from the binding pocket mol2 file
-def __get_pocket():
-    for pfile in pocket_files:
-        try:
-            pocket = next(pybel.readfile('mol2', pfile))
-        except:
-            raise IOError('Cannot read %s file' % pfile)
-
-        pocket_coords, pocket_features = featurizer.get_features(pocket, molcode=-1)
-        pocket_vdw = parse_mol_vdw(mol=pocket, element_dict=element_dict)
-        yield (pocket_coords, pocket_features, pocket_vdw)
-
-##Define function to extract information from elements.xml file
-def parse_element_description(desc_file):
-    element_info_dict = {}
-    element_info_xml = ET.parse(desc_file)
-    for element in element_info_xml.getiterator():
-        if "comment" in element.attrib.keys():
-            continue
-        else:
-            element_info_dict[int(element.attrib["number"])] = element.attrib
-
-    return element_info_dict
-
-
-##Define function to create a list of van der Waals radii for a molecule
-def parse_mol_vdw(mol, element_dict):
-    vdw_list = []
-    for atom in mol.atoms:
-        # NOTE: to be consistent between featurization methods, throw out the hydrogens
-        if int(atom.atomicnum) == 1:
-            continue
-        if int(atom.atomicnum) == 0:
-            continue
-        else:
-            vdw_list.append(float(element_dict[atom.atomicnum]["vdWRadius"]))
-    return np.asarray(vdw_list)
-    
- 
 
 
 ##Call this function to convert cleaned mol2 files into one hdf file
@@ -57,7 +16,49 @@ def convert_to_hdf (cleaned_csv_path, output, mol2_path, general_PDBs_path, refi
   1) returns an hdf file containing only the PDB id's that will be used, saved at:
      'path/to/output/hdf/file.hdf'
   """
+    #Necessary import statements
+    from featurizer import Featurizer
+    import xml.etree.ElementTree as ET
+
+    #Define function to extract features from the binding pocket mol2 file
+    def __get_pocket():
+        for pfile in pocket_files:
+            try:
+                pocket = next(pybel.readfile('mol2', pfile))
+            except:
+                raise IOError('Cannot read %s file' % pfile)
+
+            pocket_coords, pocket_features = featurizer.get_features(pocket, molcode=-1)
+            pocket_vdw = parse_mol_vdw(mol=pocket, element_dict=element_dict)
+            yield (pocket_coords, pocket_features, pocket_vdw)
+
+    #Define function to extract information from elements.xml file
+    def parse_element_description(desc_file):
+        element_info_dict = {}
+        element_info_xml = ET.parse(desc_file)
+        for element in element_info_xml.getiterator():
+            if "comment" in element.attrib.keys():
+                continue
+            else:
+                element_info_dict[int(element.attrib["number"])] = element.attrib
+
+        return element_info_dict
+
+
+    #Define function to create a list of van der Waals radii for a molecule
+    def parse_mol_vdw(mol, element_dict):
+        vdw_list = []
+        for atom in mol.atoms:
+            # NOTE: to be consistent between featurization methods, throw out the hydrogens
+            if int(atom.atomicnum) == 1:
+                continue
+            if int(atom.atomicnum) == 0:
+                continue
+            else:
+                vdw_list.append(float(element_dict[atom.atomicnum]["vdWRadius"]))
+        return np.asarray(vdw_list)
     
+
   #read in data from elements.xml file
   element_dict = parse_element_description("ML_pba/elements.xml")
 
@@ -96,8 +97,6 @@ def convert_to_hdf (cleaned_csv_path, output, mol2_path, general_PDBs_path, refi
  
 
   featurizer = Featurizer()
-
-
 
 
   #create a new hdf file to store all of the data
