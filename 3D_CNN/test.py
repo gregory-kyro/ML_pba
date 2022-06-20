@@ -58,11 +58,11 @@ def test_3dcnn(data_dir, thdf_fn, model_dir):
   device_name = "cuda:0"
 
   # set CUDA for PyTorch
-use_cuda = torch.cuda.is_available()
-cuda_count = torch.cuda.device_count()
-if use_cuda:
-	device = torch.device(device_name)
-	torch.cuda.set_device(int(device_name.split(':')[1]))
-else:
-	device = torch.device("cpu")
-print(use_cuda, cuda_count, device)
+  use_cuda = torch.cuda.is_available()
+  cuda_count = torch.cuda.device_count()
+  if use_cuda:
+    device = torch.device(device_name)
+    torch.cuda.set_device(int(device_name.split(':')[1]))
+  else:
+    device = torch.device("cpu")
+  print(use_cuda, cuda_count, device)
