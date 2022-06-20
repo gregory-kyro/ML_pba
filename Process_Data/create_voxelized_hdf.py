@@ -1,5 +1,3 @@
-
-
 def create_voxelized_hdf (input_train_hdf_path, input_val_hdf_path, input_test_hdf_path, output_train_hdf_path, output_val_hdf_path, output_test_hdf_path, output_csv_path):
     """
     input:
