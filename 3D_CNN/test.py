@@ -36,3 +36,19 @@ def strip_prefix_if_present(state_dict, prefix):
 			newkey = key[len(prefix) :]
 			metadata[newkey] = metadata.pop(key)
 
+def test_3dcnn(data_dir, hdf_fn, vhdf_fn, thdf_fn, checkpoint_dir):
+  """
+  Define a function to train the 3D CNN model
+  
+  inputs:
+  1) data_dir: path to hdf data
+  2) hdf_fn: training hdf file name
+  3) vhdf_fn: validation hdf file name
+  4) thdf_fn: testing hdf file name
+  5) checkpoint_dir: path to save checkpoint file: 'path/to/file.pt'
+  
+  output:
+  1) checkpoint file, to load into testing function
+  """
+  
+  # define parameters
