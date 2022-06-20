@@ -1,8 +1,4 @@
-***Paragraph introducing the model and what it can accomplish***
-
-
-
-**Procedure for Reproducing Models**
+**Procedure for Processing and Preparing Data**
 1) Read in PDBbind datasets and create a csv file to be used to produce hdf5 files (data for models)
   - parse_PDBbind_data.py
 2) Add hydrogens to pocket PDB files and convert to mol2 files type using Chimera 1.16, remove TIP3P atoms from mol2 files
