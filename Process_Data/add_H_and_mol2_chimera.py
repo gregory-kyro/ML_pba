@@ -1,6 +1,5 @@
 ##This script should be run using chimera 1.16 from the terminal
 
-
 import os
 from chimera import runCommand as rc
 from chimera import replyobj
