@@ -2,6 +2,7 @@
 1) Read in PDBbind datasets and create a csv file to be used to produce hdf5 files (data for models)
   - parse_PDBbind_data.py
   - run this code in notebook to perform step 1:
+  
         ```""" create cleaned pdb affinity dataset """
         
         from parse_PDBbind_data import create_dataset
