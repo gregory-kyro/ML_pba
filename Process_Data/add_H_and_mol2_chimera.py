@@ -14,8 +14,8 @@ file_names = []
 for root, dirs, files in os.walk(".", topdown=False):
    for name in files:
   	if name.endswith("_pocket.pdb") and not os.path.exists("mol2files_nocharges/" + name[:-3] + "mol2"):
-   path_names.append(os.path.join(root, name))
-   file_names.append(name)
+       path_names.append(os.path.join(root, name))
+       file_names.append(name)
  
 # loop through the files, opening, processing, saving, and closing each in turn
 for i in range(0, len(path_names)):
