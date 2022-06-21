@@ -13,7 +13,7 @@
   - add_H_and_mol2_chimera.py
   - run_chimera_remove_tip3p.sh
   
-**3)** Zip the mol2 files into zip files of less than 10 MB (required for upload to ACC2), upload each zip file to ACC2, compute charges, download the output mol2 zip files, unzip each of the mol2 zip files
+**3)** Compute charges for mol2 files externally with Atomic Charge Calculator II (ACC2)
   - ACC2: <https://acc2.ncbr.muni.cz/>
    
 **4)** Identify non-problematic complexes, and create train, test, and validation hdf files
