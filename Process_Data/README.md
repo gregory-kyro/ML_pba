@@ -12,12 +12,12 @@
 **2)** Add hydrogens to pocket PDB files and convert to mol2 files type using Chimera 1.16, remove TIP3P atoms from mol2 files
   - add_H_and_mol2_chimera.py
   - run_chimera_remove_tip3p.sh
-  - 
+  
 **3)** Zip the mol2 files into zip files of less than 10 MB (required for upload to ACC2), upload each zip file to ACC2, compute charges, download the output mol2 zip files, unzip each of the mol2 zip files
   - ACC2: <https://acc2.ncbr.muni.cz/>
-  - 
+   
 **4)** Identify non-problematic complexes, and create train, test, and validation hdf files
   - convert_to_hdf.py
-  - 
+  
 **5)** Create hdf files containing voxelized train, test, and validation data for use in the 3dcnn
   - create_voxelized_hdf.py
