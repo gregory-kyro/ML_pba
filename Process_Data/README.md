@@ -3,11 +3,11 @@
   - parse_PDBbind_data.py
   - run this code in notebook to perform step 1:
   
-        ```""" create cleaned pdb affinity dataset """
+        """ create cleaned pdb affinity dataset """
         
         from parse_PDBbind_data import create_dataset
         
-        create_dataset('path/to/dataset.csv', 'path/to/general/set/pdbs/%s', 'path/to/refined/set/pdbs/%s', plot=True)```
+        create_dataset('path/to/dataset.csv', 'path/to/general/set/pdbs/%s', 'path/to/refined/set/pdbs/%s', plot=True)
         
 2) Add hydrogens to pocket PDB files and convert to mol2 files type using Chimera 1.16, remove TIP3P atoms from mol2 files
   - add_H_and_mol2_chimera.py
