@@ -32,8 +32,24 @@ from torch_geometric.utils import softmax, dense_to_sparse
 from torch_geometric.utils import (to_dense_batch, add_self_loops, remove_self_loops, normalized_cut, dense_to_sparse,
                                    is_undirected, to_undirected, scatter_, contains_self_loops)
 
-
-
+def test_3dcnn(data_dir, thdf_fn, model_dir):
+  """
+  Define a function to test the 3D CNN model
+  
+  inputs:
+  1) data_dir: path to hdf data
+  2) thdf_fn: testing hdf file name
+  3) model_dir: 'directory/to/checkpoint/file.pt'
+  
+  output:
+  1) csv file containing summary of evaluation (prediction, label),
+		 saves as: '3d_cnn_evaluation.csv'
+	2) np file containing summary of feature information, saves as:
+	   '3d_cnn_evaluation.np'
+  """
+  
+  # define parameters
+  save_pred = True        # whether to save prediction results in csv file
 
 
 
