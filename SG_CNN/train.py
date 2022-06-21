@@ -43,7 +43,8 @@ def train_sgcnn(data_dir, train_data, val_data, checkpoint_dir):
   4) checkpoint_dir: path to save checkpoint file: 'path/to/file.pt'
   
   output:
-  1) checkpoint file, to load into testing function
+  1) checkpoint file, to load into testing function: saved as:
+     '/best_checkpoint.pth'
   """
   
   # set directory to path containing data
@@ -76,61 +77,40 @@ def train_sgcnn(data_dir, train_data, val_data, checkpoint_dir):
   
   def worker_init_fn(worker_id):
     np.random.seed(int(0))
-
-  train_dataset = PDBBindDataset(
-        data_file=train_data,
-        output_info=True,
-    )
-
-
-  val_dataset = PDBBindDataset(
-          data_file=val_data,
-          output_info=True,
-      )
-
-
-  train_dataloader = DataListLoader(
-      train_dataset,
-      batch_size=batch_size,
-      shuffle=False,
-      worker_init_fn=worker_init_fn,
-      drop_last=True,
-  )  # just to keep batch sizes even, since shuffling is used
-
-  val_dataloader = DataListLoader(
-      val_dataset,
-      batch_size=batch_size,
-      shuffle=False,
-      worker_init_fn=worker_init_fn,
-      drop_last=True,
-  )
-
+  
+  # construct datasets fromt training and validation data
+  train_dataset = SGCNN_Dataset(data_file=train_data, output_info=True)
+  val_dataset = SGCNN_Dataset(data_file=val_data, output_info=True)
+  
+  
+  # construct training and validation dataloaders to be fed to model
+  train_dataloader = DataListLoader(train_dataset, batch_size=batch_size, shuffle=False, worker_init_fn=worker_init_fn, drop_last=True)
+  val_dataloader = DataListLoader(val_dataset, batch_size=batch_size, shuffle=False, worker_init_fn=worker_init_fn, drop_last=True)
+  
+  # print statement of complexes for sanity check
   tqdm.write("{} complexes in training dataset".format(len(train_dataset)))
   tqdm.write("{} complexes in validation dataset".format(len(val_dataset)))
-
-  model = GeometricDataParallel(
-      PotentialNetParallel(
-          in_channels=feature_size,
-          out_channels=1,
-          covalent_gather_width=covalent_gather_width,
-          non_covalent_gather_width=non_covalent_gather_width,
-          covalent_k=covalent_k,
-          non_covalent_k=non_covalent_k,
-          covalent_neighbor_threshold=covalent_threshold,
-          non_covalent_neighbor_threshold=non_covalent_threshold,
-      )
-  ).float()
-
+  
+  # construct SG CNN model
+  model = GeometricDataParallel(PotentialNetParallel(in_channels=feature_size, out_channels=1, covalent_gather_width=covalent_gather_width,
+                                                     non_covalent_gather_width=non_covalent_gather_width, covalent_k=covalent_k, 
+                                                     non_covalent_k=non_covalent_k, covalent_neighbor_threshold=covalent_threshold,
+                                                     non_covalent_neighbor_threshold=non_covalent_threshold)).float()
   model.train()
   model.to(0)
-
+  
+  # set loss as MSE
   criterion = nn.MSELoss().float()
-  optimizer = Adam(model.parameters(), lr=lr) ##Why Adam for this but not the 3dcnn? Look into the reasoning
-
+  # set Adam optimizer
+  optimizer = Adam(model.parameters(), lr=lr) 
+  
+  # initialize checkpoint parameters
   best_checkpoint_dict = None
   best_checkpoint_epoch = 0
   best_checkpoint_step = 0
-  best_checkpoint_r2 = -9e9
+  best_checkpoint_r2 = -100000000000
+  
+  # train model
   step = 0
   for epoch in range(epochs):
       losses = []
@@ -140,48 +120,32 @@ def train_sgcnn(data_dir, train_data, val_data, checkpoint_dir):
               print("empty batch, skipping to next batch")
               continue
           optimizer.zero_grad()
-
           data = [x[1] for x in batch]
           y_ = model(data)
           y = torch.cat([x[1].y for x in batch])
-
+          # compute loss
           loss = criterion(y.float(), y_.cpu().float())
           losses.append(loss.cpu().data.item())
           loss.backward()
-
           y_true = y.cpu().data.numpy()
           y_pred = y_.cpu().data.numpy()
-
+          # compute r^2
           r2 = r2_score(y_true=y_true, y_pred=y_pred)
+          # compute mae
           mae = mean_absolute_error(y_true=y_true, y_pred=y_pred)
-
+          # compute pearson correlation coefficient
           pearsonr = stats.pearsonr(y_true.reshape(-1), y_pred.reshape(-1))
+          # compute spearman correlation coefficient
           spearmanr = stats.spearmanr(y_true.reshape(-1), y_pred.reshape(-1))
-
-          tqdm.write(
-              "epoch: {}\tloss:{:0.4f}\tr2: {:0.4f}\t pearsonr: {:0.4f}\tspearmanr: {:0.4f}\tmae: {:0.4f}\tpred stdev: {:0.4f}"
-              "\t pred mean: {:0.4f} \tcovalent_threshold: {:0.4f} \tnon covalent threshold: {:0.4f}".format(
-                  epoch,
-                  loss.cpu().data.numpy(),
-                  r2,
-                  float(pearsonr[0]),
-                  float(spearmanr[0]),
-                  float(mae),
-                  np.std(y_pred),
-                  np.mean(y_pred),
-                  model.module.covalent_neighbor_threshold.t.cpu().data.item(),
-                  model.module.non_covalent_neighbor_threshold.t.cpu().data.item(),
-              )
-          )
+          # write training summary for each epoch
+          tqdm.write("epoch: {}\tloss:{:0.4f}\tr2: {:0.4f}\t pearsonr: {:0.4f}\tspearmanr: {:0.4f}\tmae: {:0.4f}\tpred stdev: {:0.4f}"
+                     "\t pred mean: {:0.4f} \tcovalent_threshold: {:0.4f} \tnon covalent threshold: {:0.4f}".format(
+                       epoch, loss.cpu().data.numpy(), r2, float(pearsonr[0]), float(spearmanr[0]), float(mae), np.std(y_pred), np.mean(y_pred),
+                       model.module.covalent_neighbor_threshold.t.cpu().data.item(), model.module.non_covalent_neighbor_threshold.t.cpu().data.item()))
 
           if checkpoint:
               if step % checkpoint_iter == 0:
-                  checkpoint_dict = checkpoint_model(
-                      model,
-                      val_dataloader,
-                      epoch,
-                      step,
-                  )
+                  checkpoint_dict = checkpoint_model(model, val_dataloader, epoch, step)
                   if checkpoint_dict["validate_dict"]["r2"] > best_checkpoint_r2:
                       best_checkpoint_step = step
                       best_checkpoint_epoch = epoch
@@ -192,12 +156,7 @@ def train_sgcnn(data_dir, train_data, val_data, checkpoint_dir):
           step += 1
 
       if checkpoint:
-          checkpoint_dict = checkpoint_model(
-              model,
-              val_dataloader,
-              epoch,
-              step
-          )
+          checkpoint_dict = checkpoint_model(model, val_dataloader, epoch, step)
           if checkpoint_dict["validate_dict"]["r2"] > best_checkpoint_r2:
               best_checkpoint_step = step
               best_checkpoint_epoch = epoch
@@ -206,12 +165,7 @@ def train_sgcnn(data_dir, train_data, val_data, checkpoint_dir):
 
   if checkpoint:
       # once broken out of the loop, save last model
-      checkpoint_dict = checkpoint_model(
-          model,
-          val_dataloader,
-          epoch,
-          step
-      )
+      checkpoint_dict = checkpoint_model(model, val_dataloader, epoch, step)
 
       if checkpoint_dict["validate_dict"]["r2"] > best_checkpoint_r2:
           best_checkpoint_step = step
@@ -220,28 +174,22 @@ def train_sgcnn(data_dir, train_data, val_data, checkpoint_dir):
           best_checkpoint_dict = checkpoint_dict
 
   if checkpoint:
-      torch.save(best_checkpoint_dict, checkpoint_dir + "/best_checkpoint.pth")
-  print(
-      "best training checkpoint epoch {}/step {} with r2: {}".format(
-          best_checkpoint_epoch, best_checkpoint_step, best_checkpoint_r2
-      )
-  )
+      torch.save(best_checkpoint_dict, checkpoint_dir + '/best_checkpoint.pth')
+  print("best training checkpoint epoch {}/step {} with r2: {}".format(best_checkpoint_epoch, best_checkpoint_step, best_checkpoint_r2))
   
-  
+  # define function to perform validation
   def validate(model, val_dataloader):
-
+      # initialize
       model.eval()
-
       y_true = []
       y_pred = []
       pdbid_list = []
       pose_list = []
-
+      # validation
       for batch in tqdm(val_dataloader):
           data = [x[1] for x in batch if x is not None]
           y_ = model(data)
           y = torch.cat([x[1].y for x in batch])
-
           pdbid_list.extend([x[0] for x in batch])
           pose_list.extend([x[1] for x in batch])
           y_true.append(y.cpu().data.numpy())
@@ -249,84 +197,29 @@ def train_sgcnn(data_dir, train_data, val_data, checkpoint_dir):
 
       y_true = np.concatenate(y_true).reshape(-1, 1)
       y_pred = np.concatenate(y_pred).reshape(-1, 1)
-
+      # compute r^2
       r2 = r2_score(y_true=y_true, y_pred=y_pred)
+      # compute mae
       mae = mean_absolute_error(y_true=y_true, y_pred=y_pred)
+      # compute mse
       mse = mean_squared_error(y_true=y_true, y_pred=y_pred)
+      # compute pearson correlation coefficient
       pearsonr = stats.pearsonr(y_true.reshape(-1), y_pred.reshape(-1))
+      # compte spearman correlation coefficient
       spearmanr = stats.spearmanr(y_true.reshape(-1), y_pred.reshape(-1))
-
-      tqdm.write(
-          str(
-              "r2: {}\tmae: {}\tmse: {}\tpearsonr: {}\t spearmanr: {}".format(
-                  r2, mae, mse, pearsonr, spearmanr
-              )
-          )
-      )
+      # write out metrics
+      tqdm.write(str(
+              "r2: {}\tmae: {}\tmse: {}\tpearsonr: {}\t spearmanr: {}".format(r2, mae, mse, pearsonr, spearmanr)))
+      
       model.train()
-      return {
-          "r2": r2,
-          "mse": mse,
-          "mae": mae,
-          "pearsonr": pearsonr,
-          "spearmanr": spearmanr,
-          "y_true": y_true,
-          "y_pred": y_pred,
-          "pdbid": pdbid_list,
-          "pose": pose_list,
-      }
+      return {"r2": r2, "mse": mse, "mae": mae, "pearsonr": pearsonr, "spearmanr": spearmanr,
+              "y_true": y_true, "y_pred": y_pred, "pdbid": pdbid_list, "pose": pose_list}
 
-
+  # define function to return checkpoint dictionary
   def checkpoint_model(model, dataloader, epoch, step):
-
       validate_dict = validate(model, dataloader)
       model.train()
-
-      checkpoint_dict = {
-          "model_state_dict": model.state_dict(),
-          "args": NoneType,
-          "step": step,
-          "epoch": epoch,
-          "validate_dict": validate_dict,
-      }
-
+      checkpoint_dict = {"model_state_dict": model.state_dict(), "args": NoneType, "step": step, "epoch": epoch, "validate_dict": validate_dict}
       torch.save(checkpoint_dict, './sgcnn_checkpoint')
-
       # return the computed metrics so it can be used to update the training loop
       return checkpoint_dict
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
