@@ -47,9 +47,9 @@ def test_3dcnn(data_dir, thdf_fn, model_dir):
   
   output:
   1) csv file containing summary of evaluation (prediction, label),
-		 saves as: '3d_cnn_evaluation.csv'
-	2) np file containing summary of feature information, saves as:
-	   '3d_cnn_evaluation.np'
+     saves as: '3d_cnn_evaluation.csv'
+  2) np file containing summary of feature information, saves as:
+     '3d_cnn_evaluation.np'
   """
   
   # define parameters
