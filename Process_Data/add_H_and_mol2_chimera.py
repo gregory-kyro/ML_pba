@@ -24,4 +24,4 @@ for i in range(0, len(path_names)):
      	rc("addh") #Add hydrogens
      	mol2_name = "mol2files_nocharges/" + file_names[i][:-3] + "mol2"
      	rc("write format mol2 0 " + mol2_name) #Convert to mol2
-        	rc("close all")
+      rc("close all")
