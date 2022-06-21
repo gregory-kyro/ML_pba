@@ -3,7 +3,7 @@ def convert_to_hdf(affinity_data_path, output_total_hdf, mol2_path, general_PDBs
   This function converts the mol2 files into three cleaned hdf files containing datasets for training, testing, and validation complexes, respectively.
    
   input:
-  1) path/to/affinity/data.csv
+  1) path/to/cleaned/affinity/data.csv
   2) path/to/total/output/hdf/file.hdf
   3) path/to/mol2/files
   4) path/to/PDBs/in/general_set
