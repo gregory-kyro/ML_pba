@@ -10,8 +10,9 @@
         
         
 **2)** Add hydrogens to pocket PDB files and convert to mol2 files type using Chimera 1.16, remove TIP3P atoms from mol2 files
-  - add_H_and_mol2_chimera.py
-  - run_chimera_remove_tip3p.sh
+  - save add_H_and_mol2_chimera.py and run_chimera_remove_tip3p.sh, altering file paths as appropriate
+  - run the following in Mac terminal: sh path/to/run_chimera_remove_tip3p.sh
+  - if the process crashes, remove the problematic pdb file and run the same line of code again
   
 **3)** Compute charges for mol2 files externally with Atomic Charge Calculator II (ACC2)
   - ACC2: <https://acc2.ncbr.muni.cz/>
