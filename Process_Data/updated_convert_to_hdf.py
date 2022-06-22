@@ -1,4 +1,4 @@
-'''NOTE: The file path to elements.xml should probably be added as well. Of course, in future iterations we'll want to do away with this entirely...'''
+
 
 def convert_to_hdf(affinity_data_path, output_total_hdf, mol2_path, general_PDBs_path, refined_PDBs_path, output_val_hdf, output_train_hdf, output_test_hdf, path_to_elements_xml, bad_pdbids_input = []):
     """
