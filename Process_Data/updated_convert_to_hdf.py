@@ -34,7 +34,8 @@ def convert_to_hdf(affinity_data_path, output_total_hdf, mol2_path, general_PDBs
     from itertools import combinations
     import pandas as pd
     import h5py
-
+    import csv
+    
     class Featurizer():
         """Calcaulates atomic features for molecules. Features can encode atom type,
         native pybel properties or any property defined with SMARTS patterns
