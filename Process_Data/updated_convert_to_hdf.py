@@ -579,7 +579,7 @@ def convert_to_hdf(affinity_data_path, output_total_hdf, mol2_path, general_PDBs
 
 
     # read in data from elements.xml file
-    element_dict = parse_element_description("path_to_elements_xml")
+    element_dict = parse_element_description(path_to_elements_xml)
 
     # read in cleaned affinity data csv file
     affinities = pd.read_csv(affinity_data_path)
