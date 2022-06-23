@@ -549,9 +549,9 @@ def convert_to_hdf(affinity_data_path, output_total_hdf, mol2_path, general_PDBs
                 raise IOError('Cannot read %s file' % pfile)
             if(get_charge(pocket)==('bad_complex')):
                 bad_complexes.append((os.path.splitext(os.path.split(pfile)[1])[0]).split('_')[0]) 
-                pocket_coords, pocket_features = featurizer.get_features(pocket, molcode=-1)
-                pocket_vdw = parse_mol_vdw(mol=pocket, element_dict=element_dict)
-                yield (pocket_coords, pocket_features, pocket_vdw)
+            pocket_coords, pocket_features = featurizer.get_features(pocket, molcode=-1)
+            pocket_vdw = parse_mol_vdw(mol=pocket, element_dict=element_dict)
+            yield (pocket_coords, pocket_features, pocket_vdw)
 
     # define function to extract information from elements.xml file
     def parse_element_description(desc_file):
