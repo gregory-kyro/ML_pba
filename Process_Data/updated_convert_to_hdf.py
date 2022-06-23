@@ -597,11 +597,12 @@ def convert_to_hdf(affinity_data_path, output_total_hdf, mol2_path, general_PDBs
 
     # fill lists with paths to pocket and ligand mol2 files
     for i in range(0, len(pdbids_cleaned)):
-        pocket_files.append(mol2_path + "/" + pdbids_cleaned[i] + '_pocket.mol2')
-        if affinities['set'][i]=='general':
-            ligand_files.append(general_PDBs_path + "/" + pdbids_cleaned[i] + '/' + pdbids_cleaned[i] + '_ligand.mol2')
-        else:
-            ligand_files.append(refined_PDBs_path + "/" + pdbids_cleaned[i] + '/' + pdbids_cleaned[i] + '_ligand.mol2')
+        if pdbids_cleaned[i] not in bad_complexes:
+            pocket_files.append(mol2_path + "/" + pdbids_cleaned[i] + '_pocket.mol2')
+            if affinities['set'][i]=='general':
+                ligand_files.append(general_PDBs_path + "/" + pdbids_cleaned[i] + '/' + pdbids_cleaned[i] + '_ligand.mol2')
+            else:
+                ligand_files.append(refined_PDBs_path + "/" + pdbids_cleaned[i] + '/' + pdbids_cleaned[i] + '_ligand.mol2')
 
     num_pockets = len(pocket_files)
     num_ligands = len(ligand_files)
