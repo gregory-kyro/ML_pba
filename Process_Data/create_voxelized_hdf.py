@@ -8,7 +8,6 @@ def create_voxelized_hdf (input_train_hdf_path, input_val_hdf_path, input_test_h
     5) path/to/output/validation/hdf/file.hdf
     6) path/to/output/testing/hdf/file.hdf
     7) path/to/output/csv/file.csv
-
     output:
     1) Creates 3 hdf files containing voxelized training, testing, and validation data. Also creates a csv file containing more general information about each complex.
     """
@@ -103,61 +102,61 @@ def create_voxelized_hdf (input_train_hdf_path, input_val_hdf_path, input_test_h
 
         return vol_data
 
-  # do not change unless the hdf structure is changed
-  g_csv_header = ['pdbid', 'file_prefix', 'label', 'train_test_split', 'atom_count', 'xsize', 'ysize', 'zsize', 'p_atom_count1', 'p_atom_count2', 'p_xsize', 'p_ysize', 'p_zsize']
+    # do not change unless the hdf structure is changed
+    g_csv_header = ['pdbid', 'file_prefix', 'label', 'train_test_split', 'atom_count', 'xsize', 'ysize', 'zsize', 'p_atom_count1', 'p_atom_count2', 'p_xsize', 'p_ysize', 'p_zsize']
 
-  # open input hdf files
-  input_train_hdf = h5py.File(input_train_hdf_path, 'r')
-  input_val_hdf = h5py.File(input_val_hdf_path, 'r')
-  input_test_hdf = h5py.File(input_test_hdf_path, 'r')
+    # open input hdf files
+    input_train_hdf = h5py.File(input_train_hdf_path, 'r')
+    input_val_hdf = h5py.File(input_val_hdf_path, 'r')
+    input_test_hdf = h5py.File(input_test_hdf_path, 'r')
 
-  # create output hdf files
-  output_train_hdf = h5py.File(output_train_hdf_path, 'w')
-  output_val_hdf = h5py.File(output_val_hdf_path, 'w')
-  output_test_hdf = h5py.File(output_test_hdf_path, 'w')
+    # create output hdf files
+    output_train_hdf = h5py.File(output_train_hdf_path, 'w')
+    output_val_hdf = h5py.File(output_val_hdf_path, 'w')
+    output_test_hdf = h5py.File(output_test_hdf_path, 'w')
 
-  # create output csv
-  output_csv_fp = open(output_csv_path, 'w')
-  output_csv = csv.writer(output_csv_fp, delimiter=',')
-  output_csv.writerow(g_csv_header)
-  
-  # organize input and output hdf files
-  input_hdfs = [input_train_hdf, input_val_hdf, input_test_hdf]
-  output_hdfs = [output_train_hdf, output_val_hdf, output_test_hdf]
-  traintest_splits = [0, 1, 2]
+    # create output csv
+    output_csv_fp = open(output_csv_path, 'w')
+    output_csv = csv.writer(output_csv_fp, delimiter=',')
+    output_csv.writerow(g_csv_header)
 
-  # set parameters for voxelization
-  g_3D_relative_size = False
-  g_3D_size_angstrom = 48
-  g_3D_size_dim = 48
-  g_3D_atom_radius = 1
-  g_3D_atom_radii = False
-  g_3D_sigma = 1
-  g_3D_dim = [g_3D_size_dim, g_3D_size_dim, g_3D_size_dim, 19]
+    # organize input and output hdf files
+    input_hdfs = [input_train_hdf, input_val_hdf, input_test_hdf]
+    output_hdfs = [output_train_hdf, output_val_hdf, output_test_hdf]
+    traintest_splits = [0, 1, 2]
 
-  if g_3D_relative_size:
-      g_3D_size_angstrom = 0
+    # set parameters for voxelization
+    g_3D_relative_size = False
+    g_3D_size_angstrom = 48
+    g_3D_size_dim = 48
+    g_3D_atom_radius = 1
+    g_3D_atom_radii = False
+    g_3D_sigma = 1
+    g_3D_dim = [g_3D_size_dim, g_3D_size_dim, g_3D_size_dim, 19]
 
-  for input_hdf, output_hdf, split in zip(input_hdfs, output_hdfs, traintest_splits): 
-      for pdbid in input_hdf.keys():
-        input_data = input_hdf[pdbid]
-        input_radii = None
-        if g_3D_atom_radii:
-            input_radii = input_data.attrs['van_der_waals']
-        input_affinity = input_hdf[pdbid].attrs['affinity']
+    if g_3D_relative_size:
+        g_3D_size_angstrom = 0
 
-        input_xyz = input_data[:,0:3] 
-        input_feat = input_data[:,3:]
+    for input_hdf, output_hdf, split in zip(input_hdfs, output_hdfs, traintest_splits): 
+        for pdbid in input_hdf.keys():
+            input_data = input_hdf[pdbid]
+            input_radii = None
+            if g_3D_atom_radii:
+                input_radii = input_data.attrs['van_der_waals']
+            input_affinity = input_hdf[pdbid].attrs['affinity']
 
-        output_3d_data = get_3D_all2(input_xyz, input_feat, g_3D_dim, g_3D_relative_size, g_3D_size_angstrom, input_radii, g_3D_atom_radius, g_3D_sigma)
-        print(input_data.shape, 'is converted into ', output_3d_data.shape)
+            input_xyz = input_data[:,0:3] 
+            input_feat = input_data[:,3:]
 
-        output_hdf.create_dataset(pdbid, data=output_3d_data, shape=output_3d_data.shape, dtype='float32', compression='lzf')
-        output_hdf[pdbid].attrs['affinity'] = input_affinity
+            output_3d_data = get_3D_all2(input_xyz, input_feat, g_3D_dim, g_3D_relative_size, g_3D_size_angstrom, input_radii, g_3D_atom_radius, g_3D_sigma)
+            print(input_data.shape, 'is converted into ', output_3d_data.shape)
 
-        lig_prefix = '%d/%s' % (split, pdbid)
-        output_csv.writerow([pdbid, lig_prefix, input_affinity, split, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+            output_hdf.create_dataset(pdbid, data=output_3d_data, shape=output_3d_data.shape, dtype='float32', compression='lzf')
+            output_hdf[pdbid].attrs['affinity'] = input_affinity
 
-  output_train_hdf.close()
-  output_val_hdf.close()
-  output_test_hdf.close()
+            lig_prefix = '%d/%s' % (split, pdbid)
+            output_csv.writerow([pdbid, lig_prefix, input_affinity, split, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+
+    output_train_hdf.close()
+    output_val_hdf.close()
+    output_test_hdf.close()
