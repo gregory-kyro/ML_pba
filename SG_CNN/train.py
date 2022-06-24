@@ -30,7 +30,7 @@ from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.nn.inits import uniform, reset
 from torch_geometric.utils import softmax, dense_to_sparse
 from torch_geometric.utils import (to_dense_batch, add_self_loops, remove_self_loops, normalized_cut, dense_to_sparse,
-                                   is_undirected, to_undirected, scatter_, contains_self_loops)
+                                is_undirected, to_undirected, contains_self_loops)
 
 def train_sgcnn(data_dir, train_data, val_data, checkpoint_dir):
   """
@@ -78,6 +78,53 @@ def train_sgcnn(data_dir, train_data, val_data, checkpoint_dir):
   def worker_init_fn(worker_id):
     np.random.seed(int(0))
   
+  # define function to return checkpoint dictionary
+  def checkpoint_model(model, dataloader, epoch, step):
+      validate_dict = validate(model, dataloader)
+      model.train()
+      checkpoint_dict = {"model_state_dict": model.state_dict(), "args": NoneType, "step": step, "epoch": epoch, "validate_dict": validate_dict}
+      torch.save(checkpoint_dict, './sgcnn_checkpoint')
+      # return the computed metrics so it can be used to update the training loop
+      return checkpoint_dict
+
+  # define function to perform validation
+  def validate(model, val_dataloader):
+      # initialize
+      model.eval()
+      y_true = []
+      y_pred = []
+      pdbid_list = []
+      pose_list = []
+      # validation
+      for batch in tqdm(val_dataloader):
+          data = [x[1] for x in batch if x is not None]
+          y_ = model(data)
+          y = torch.cat([x[1].y for x in batch])
+          pdbid_list.extend([x[0] for x in batch])
+          pose_list.extend([x[1] for x in batch])
+          y_true.append(y.cpu().data.numpy())
+          y_pred.append(y_.cpu().data.numpy())
+
+      y_true = np.concatenate(y_true).reshape(-1, 1)
+      y_pred = np.concatenate(y_pred).reshape(-1, 1)
+      # compute r^2
+      r2 = r2_score(y_true=y_true, y_pred=y_pred)
+      # compute mae
+      mae = mean_absolute_error(y_true=y_true, y_pred=y_pred)
+      # compute mse
+      mse = mean_squared_error(y_true=y_true, y_pred=y_pred)
+      # compute pearson correlation coefficient
+      pearsonr = stats.pearsonr(y_true.reshape(-1), y_pred.reshape(-1))
+      # compte spearman correlation coefficient
+      spearmanr = stats.spearmanr(y_true.reshape(-1), y_pred.reshape(-1))
+      # write out metrics
+      tqdm.write(str(
+              "r2: {}\tmae: {}\tmse: {}\tpearsonr: {}\t spearmanr: {}".format(r2, mae, mse, pearsonr, spearmanr)))
+      
+      model.train()
+      return {"r2": r2, "mse": mse, "mae": mae, "pearsonr": pearsonr, "spearmanr": spearmanr,
+              "y_true": y_true, "y_pred": y_pred, "pdbid": pdbid_list, "pose": pose_list}
+
   # construct datasets fromt training and validation data
   train_dataset = SGCNN_Dataset(data_file=train_data, output_info=True)
   val_dataset = SGCNN_Dataset(data_file=val_data, output_info=True)
@@ -177,49 +224,4 @@ def train_sgcnn(data_dir, train_data, val_data, checkpoint_dir):
       torch.save(best_checkpoint_dict, checkpoint_dir + '/best_checkpoint.pth')
   print("best training checkpoint epoch {}/step {} with r2: {}".format(best_checkpoint_epoch, best_checkpoint_step, best_checkpoint_r2))
   
-  # define function to perform validation
-  def validate(model, val_dataloader):
-      # initialize
-      model.eval()
-      y_true = []
-      y_pred = []
-      pdbid_list = []
-      pose_list = []
-      # validation
-      for batch in tqdm(val_dataloader):
-          data = [x[1] for x in batch if x is not None]
-          y_ = model(data)
-          y = torch.cat([x[1].y for x in batch])
-          pdbid_list.extend([x[0] for x in batch])
-          pose_list.extend([x[1] for x in batch])
-          y_true.append(y.cpu().data.numpy())
-          y_pred.append(y_.cpu().data.numpy())
-
-      y_true = np.concatenate(y_true).reshape(-1, 1)
-      y_pred = np.concatenate(y_pred).reshape(-1, 1)
-      # compute r^2
-      r2 = r2_score(y_true=y_true, y_pred=y_pred)
-      # compute mae
-      mae = mean_absolute_error(y_true=y_true, y_pred=y_pred)
-      # compute mse
-      mse = mean_squared_error(y_true=y_true, y_pred=y_pred)
-      # compute pearson correlation coefficient
-      pearsonr = stats.pearsonr(y_true.reshape(-1), y_pred.reshape(-1))
-      # compte spearman correlation coefficient
-      spearmanr = stats.spearmanr(y_true.reshape(-1), y_pred.reshape(-1))
-      # write out metrics
-      tqdm.write(str(
-              "r2: {}\tmae: {}\tmse: {}\tpearsonr: {}\t spearmanr: {}".format(r2, mae, mse, pearsonr, spearmanr)))
-      
-      model.train()
-      return {"r2": r2, "mse": mse, "mae": mae, "pearsonr": pearsonr, "spearmanr": spearmanr,
-              "y_true": y_true, "y_pred": y_pred, "pdbid": pdbid_list, "pose": pose_list}
-
-  # define function to return checkpoint dictionary
-  def checkpoint_model(model, dataloader, epoch, step):
-      validate_dict = validate(model, dataloader)
-      model.train()
-      checkpoint_dict = {"model_state_dict": model.state_dict(), "args": NoneType, "step": step, "epoch": epoch, "validate_dict": validate_dict}
-      torch.save(checkpoint_dict, './sgcnn_checkpoint')
-      # return the computed metrics so it can be used to update the training loop
-      return checkpoint_dict
+  
