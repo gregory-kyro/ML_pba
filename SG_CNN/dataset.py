@@ -30,7 +30,7 @@ from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.nn.inits import uniform, reset
 from torch_geometric.utils import softmax, dense_to_sparse
 from torch_geometric.utils import (to_dense_batch, add_self_loops, remove_self_loops, normalized_cut, dense_to_sparse, 
-                                   is_undirected, to_undirected, scatter_, contains_self_loops)
+                                   is_undirected, to_undirected, contains_self_loops)
 
 """ Define a class to contain the data that will be included in the dataloader 
 sent to the SG CNN model """
