@@ -83,7 +83,7 @@ def convert_to_hdf(affinity_data_path, output_total_hdf, mol2_path, general_PDBs
                 specified this argument is ignored.
             named_properties: list of strings, optional
                 Names of atomic properties to retrieve from pybel.Atom object. If
-                not specified ['hyb', 'heavyvalence', 'heterovalence',
+                not specified ['hyb', 'heavydegree', 'heterodegree',
                 'partialcharge'] is used.
             save_molecule_codes: bool, optional (default True)
                 If set to True, there will be an additional feature to save
